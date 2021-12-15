@@ -1,0 +1,153 @@
+---
+title: "Report-RepProj2"
+author: "Samuel Chen"
+date: "2021/12/15"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE)
+```
+# Severe Weather data analysis for the impact on population health and economy from 1996 to 2011
+
+## Synopsis \
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.\
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.\
+
+### Data\
+The data for this assignment come in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size. You can download the file from the course web site:\
+
+- [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2)\
+There is also some documentation of the database available. Here you will find how some of the variables are constructed/defined.\
+
+- National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)\
+- National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)\
+
+The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete.\
+
+## Questions\
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?\
+2. Across the United States, which types of events have the greatest economic consequences?\
+\
+
+## Data Processing\
+```{r}
+library(tidyverse)
+library(lubridate)
+library(knitr)
+
+##Locate, download and unzip the data file.
+fileName<-"repdata_data_StormData.csv.bz2"
+fileURL<-"https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+
+if(!file.exists(fileName)){
+  download.file(fileURL,destfile=fileName,method="curl")
+}
+
+##Read the data.
+df<-read.csv(fileName)
+dim(df)
+names(df)
+str(df)
+summary(df)
+
+#Subsetting the raw data set
+df_selected<-select(df,BGN_DATE,EVTYPE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+gsub(" 0:00:00", "",df_selected$BGN_DATE)
+df_selected$BGN_DATE<-mdy(df_selected$BGN_DATE)
+head(df_selected)
+df_selected<-subset(df_selected,year(BGN_DATE)>"1995"& year(BGN_DATE)<=2011)
+
+##Format transformations
+df_selected$FATALITIES<-as.numeric(df_selected$FATALITIES)
+df_selected$INJURIES<-as.numeric(df_selected$INJURIES)
+df_selected$PROPDMG<-as.numeric(df_selected$PROPDMG)
+df_selected$CROPDMG<-as.numeric(df_selected$CROPDMG)
+```
+\
+According to this webpage<https://www.ncdc.noaa.gov/stormevents/details.jsp>, the data from 1950 to 1995 is not complete that will be excluded from the analysis. Upon the data downloaded from the link provided by the course page, the year range is 1996~2011.
+\
+
+## Solution 1: Population health related event\
+The variables for the impact on public health are "FATALITIES" and "INJURIES". So we are going to draw the subset regarding these 2 variables and the one stands for the event, EVTYPE.\
+```{r}
+##Draw the data set just for the number of fatalities and injuries.
+head(df_selected)
+dim(df_selected)
+PHDMG<-aggregate(data=df_selected,FATALITIES+INJURIES~EVTYPE, FUN="sum")
+dim(PHDMG)
+##Manipulate the data set.
+str(PHDMG)
+summary(PHDMG)
+##Rename the variables.
+names(PHDMG)<-c("EVTYPE","DMG")
+PHDMG$EVTYPE<-str_trim(PHDMG$EVTYPE)
+##Filter the records in which the damage (fatalities + injuries) are not 0.
+PHDMG_NoZero<-subset(PHDMG,DMG>0)
+##Reorder the data set with DMG descending.
+PHDMG_NoZero<-PHDMG_NoZero[order(-PHDMG_NoZero$DMG),]
+```
+\
+
+Now the data frame PHDMG_NoZero is the one we need. Go to the "Results" section to find out the final conclusion.\
+
+\
+
+## Solution 2: Economic Consequenses related event.\
+Like the previous question, we need to find out the variables telling the stories about the impact on the economy of the events. We found these variables are the ones we need: PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP.\
+Like before, the first we are going to do is to draw a subset for this topic.\
+```{r}
+ev_econ<-subset(df_selected,PROPDMG>0&CROPDMG>0)
+ev_econ<-select(ev_econ,EVTYPE,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+table(ev_econ$PROPDMGEXP)
+table(ev_econ$CROPDMGEXP)
+```
+\
+
+We found the variables "...EXP" means "exponents" and the values are "K","M" and "B". Apparently they stand for Kilo, Million and Billion. So we are going to transform them and sum the value up to a single variable that stands for the economic consequence, ECODMG.\
+```{r}
+ev_econ$PROPDMGfct[ev_econ$PROPDMGEXP=="K"]<-10^3
+ev_econ$PROPDMGfct[ev_econ$PROPDMGEXP=="M"]<-10^6
+ev_econ$PROPDMGfct[ev_econ$PROPDMGEXP=="B"]<-10^9
+
+ev_econ$CROPDMGfct[ev_econ$CROPDMGEXP=="K"]<-10^3
+ev_econ$CROPDMGfct[ev_econ$CROPDMGEXP=="M"]<-10^6
+ev_econ$CROPDMGfct[ev_econ$CROPDMGEXP=="B"]<-10^9
+
+ev_econ<-mutate(ev_econ,ECODMG=PROPDMG*PROPDMGfct+CROPDMG*CROPDMGfct)
+ev_econ_dmg<-aggregate(data=ev_econ,ECODMG~EVTYPE,FUN="sum")
+max(ev_econ_dmg$ECODMG)
+##Reorder the data set with ECODMG descending.
+ev_econ_dmg<-ev_econ_dmg[order(-ev_econ_dmg$ECODMG),]
+```
+\
+
+Just like before, let's make a plot to show the result.\
+
+```{r}
+
+```
+
+## Results\
+After the data processing and analysis above, the results for the questions will be showed with 2 plots. Let's take a look.\
+### Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?\
+```{r}
+ggplot(data=PHDMG_NoZero[1:10,],aes(x=reorder(EVTYPE,-DMG),y=DMG,fill=EVTYPE,label=DMG))+geom_col()+
+  geom_text(vjust=0)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  xlab("Events") + ylab("Fatalities and Injuries")+
+  ggtitle("1996~2011, The most harmful event type to population health")
+```
+\
+From the plot, Tornado was the most harmful event type that impact the public health in the range of 1996~2011.\
+\
+### Across the United States, which types of events have the greatest economic consequences?\
+```{r}
+ggplot(data=ev_econ_dmg[1:5,],aes(x=reorder(EVTYPE,-ECODMG),y=ECODMG,fill=EVTYPE,label=ECODMG))+geom_col()+
+  geom_text(vjust=0)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  xlab("Events") + ylab("Economic Consequences")+
+  ggtitle("1996~2011, The Top 5 events that have Economic Consequences")
+```
+\
+Hurricane/Typhoon is the result to the 2nd question.
