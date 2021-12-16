@@ -20,8 +20,10 @@ summary(df)
 ##Q1: Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
 #Subsetting the raw data set
 df_selected<-select(df,BGN_DATE,EVTYPE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
-gsub(" 0:00:00", "",df_selected$BGN_DATE)
-df_selected$BGN_DATE<-mdy(df_selected$BGN_DATE)
+df_selected <- df %>%
+  dplyr::select(BGN_DATE,EVTYPE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP) %>% 
+  mutate(BGN_DATE = str_remove(BGN_DATE, " 0:00:00")) %>% 
+  mutate(BGN_DATE = mdy(BGN_DATE)) 
 head(df_selected)
 df_selected<-subset(df_selected,year(BGN_DATE)>"1995"& year(BGN_DATE)<=2011)
 
