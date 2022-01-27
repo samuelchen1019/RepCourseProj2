@@ -141,7 +141,7 @@ ggplot(data=PHDMG_NoZero[1:10,],aes(x=reorder(EVTYPE,-DMG),y=DMG,fill=EVTYPE,lab
   ggtitle("1996~2011, The most harmful event type to population health")
 ```
 \
-From the plot, Tornado was the most harmful event type that impact the public health in the range of 1996~2011.\
+From the plot, **Tornado** was the most harmful event type that impact the public health in the range of 1996~2011.\
 \
 ### Across the United States, which types of events have the greatest economic consequences?\
 ```{r}
@@ -152,4 +152,4 @@ ggplot(data=ev_econ_dmg[1:5,],aes(x=reorder(EVTYPE,-ECODMG),y=ECODMG,fill=EVTYPE
   ggtitle("1996~2011, The Top 5 events that have Economic Consequences")
 ```
 \
-Hurricane/Typhoon is the result to the 2nd question.
+**Hurricane/Typhoon** is the result to the 2nd question.
