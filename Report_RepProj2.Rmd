@@ -132,7 +132,7 @@ Just like before, let's make a plot to show the result.\
 
 ## Results\
 After the data processing and analysis above, the results for the questions will be showed with 2 plots. Let's take a look.\
-### Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?\
+**Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?**\
 ```{r}
 ggplot(data=PHDMG_NoZero[1:10,],aes(x=reorder(EVTYPE,-DMG),y=DMG,fill=EVTYPE,label=DMG))+geom_col()+
   geom_text(vjust=0)+
@@ -143,7 +143,7 @@ ggplot(data=PHDMG_NoZero[1:10,],aes(x=reorder(EVTYPE,-DMG),y=DMG,fill=EVTYPE,lab
 \
 From the plot, **Tornado** was the most harmful event type that impact the public health in the range of 1996~2011.\
 \
-### Across the United States, which types of events have the greatest economic consequences?\
+**Across the United States, which types of events have the greatest economic consequences?**\
 ```{r}
 ggplot(data=ev_econ_dmg[1:5,],aes(x=reorder(EVTYPE,-ECODMG),y=ECODMG,fill=EVTYPE,label=ECODMG))+geom_col()+
   geom_text(vjust=0)+
